@@ -17,6 +17,34 @@ alias sdkman="sdk"
 alias so="source $HOME/.zshrc"
 
 #-------------------------------------------------------------------------------
+#  is_installed() tests if a command is available or not
+#
+#  example usage:
+#
+#    $ is_installed ls verbose
+#      ls is installed
+#
+#    $ is_installed elless verbose
+#      elless is not installed
+#
+#    $ is_installed ls # returns 0, prints nothing
+#-------------------------------------------------------------------------------
+
+function is_installed() {
+  if ! (( $+commands[$1] )); then # this line only works in zsh
+    if [[ $2 == "verbose" ]]; then
+      echo "$1 is not installed"
+    fi
+    return 1
+  else
+    if [[ $2 == "verbose" ]]; then
+      echo "$1 is installed"
+    fi
+    return 0
+  fi
+}
+
+#-------------------------------------------------------------------------------
 #  git setup
 #-------------------------------------------------------------------------------
 
@@ -127,3 +155,31 @@ function setup_sdkman() {
 }
 
 setup_sdkman
+
+#-------------------------------------------------------------------------------
+#  brew (Homebrew) installation
+#-------------------------------------------------------------------------------
+
+if ! is_installed brew; then
+  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+  echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> $HOME/.zprofile
+  eval "$(/opt/homebrew/bin/brew shellenv)"
+fi
+
+#-------------------------------------------------------------------------------
+#  pyenv installation
+#-------------------------------------------------------------------------------
+
+if ! is_installed pyenv; then
+  brew install pyenv
+fi
+
+#-------------------------------------------------------------------------------
+#  Add pyenv to PATH
+#-------------------------------------------------------------------------------
+
+if [[ ":$PATH:" == *"pyenv"* ]]; then
+  # do nothing, pyenv is already on the PATH
+else
+  eval "$(pyenv init --path)"
+fi
