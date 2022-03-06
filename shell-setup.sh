@@ -31,7 +31,7 @@ alias so="source $HOME/.zshrc"
 #-------------------------------------------------------------------------------
 
 function is_installed() {
-  if ! (( $+commands[$1] )); then # this line only works in zsh
+  if ! command -v $1 &> /dev/null; then
     if [[ $2 == "verbose" ]]; then
       echo "$1 is not installed"
     fi
@@ -116,6 +116,7 @@ function ij {
 if [[ ":$PATH:" == *"Visual Studio Code.app"* ]]; then
   # do nothing, Visual Studio Code is already on the PATH
 else
+  echo "~/.dotfiles is adding 'Visual Studio Code' ('code') to the \$PATH..."
   export PATH=$PATH:"/Applications/Visual Studio Code.app/Contents/Resources/app/bin"
 fi
 
@@ -129,6 +130,7 @@ function setup_zsh_theme() {
   sed -iE 's/^ZSH_THEME=.*/ZSH_THEME=awwsmm/' ~/.zshrc
 }
 
+echo "~/.dotfiles is refreshing the oh-my-zsh theme..."
 setup_zsh_theme
 
 #-------------------------------------------------------------------------------
@@ -146,10 +148,11 @@ function setup_sdkman() {
 
     # check if it's installed...
     if [ ! -d $SDKMAN_DIR ]; then
-      echo "Installing SDKMAN!"
+      echo "~/.dotfiles is installing 'SDKMAN!'..."
       curl -s "https://get.sdkman.io" | bash
     fi
 
+    echo "~/.dotfiles is adding 'SDKMAN!' ('sdk') to the \$PATH..."
     [[ -s "$SDKMAN_DIR/bin/sdkman-init.sh" ]] && source "$SDKMAN_DIR/bin/sdkman-init.sh"
   fi
 }
@@ -161,6 +164,7 @@ setup_sdkman
 #-------------------------------------------------------------------------------
 
 if ! is_installed brew; then
+  echo "~/.dotfiles is installing 'brew'..."
   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
   echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> $HOME/.zprofile
   eval "$(/opt/homebrew/bin/brew shellenv)"
@@ -171,6 +175,7 @@ fi
 #-------------------------------------------------------------------------------
 
 if ! is_installed pyenv; then
+  echo "~/.dotfiles is installing 'pyenv'..."
   brew install pyenv
 fi
 
@@ -181,5 +186,15 @@ fi
 if [[ ":$PATH:" == *"pyenv"* ]]; then
   # do nothing, pyenv is already on the PATH
 else
+  echo "~/.dotfiles is adding 'pyenv' to the \$PATH..."
   eval "$(pyenv init --path)"
+fi
+
+#-------------------------------------------------------------------------------
+#  node installation
+#-------------------------------------------------------------------------------
+
+if ! is_installed node; then
+  echo "~/.dotfiles is installing 'node'..."
+  brew install node
 fi
