@@ -198,3 +198,130 @@ if ! is_installed node; then
   echo "~/.dotfiles is installing 'node'..."
   brew install node
 fi
+
+if ! is_installed tsc; then
+  echo "~/.dotfiles is installing TypeScript ('tsc') globally..."
+  npm install --global typescript
+fi
+
+# used for checking if npm package names are available
+if ! is_installed tsc; then
+  echo "~/.dotfiles is installing npm-name-cli ('npm-name') globally..."
+  npm install --global npm-name-cli
+fi
+
+#-------------------------------------------------------------------------------
+#  zsh shell function to create a new TypeScript npm project
+#-------------------------------------------------------------------------------
+
+function mkts() {
+
+  # parse command-line options
+  # see: https://linux.die.net/man/1/zshmodules
+  zparseopts -E -D y=yes -yes=yes h=help -help=help q=quiet -quiet=quiet
+
+  # need help? incorrect usage?
+  if [[ -n $help ]] || [[ -z $@ ]]; then
+    echo "Usage: mkts <package-name>"
+    return 1
+  fi
+
+  # some commands take a --quiet option, some take a --silent one
+  if [[ -n $quiet ]]; then
+    local silent="--silent"
+  else
+    local silent=""
+  fi
+
+  # use npm-name-cli to check if an npm package with this name already exists
+  if [[ -z $yes ]] && ! npm-name $1; then
+    echo -n "  continue anyway (y/n)? "; read answer
+    case ${answer:0:1} in
+      y|Y )
+        ;; # continuing
+      * )
+        return 2 ;; # quitting
+    esac
+  fi
+
+  # make a directory to hold this project
+  if [[ -z $quiet ]]; then
+    echo "\ncreating a new project at $1/"
+  fi
+  if ! mkdir $1; then
+    return 1
+  else
+    cd $1
+  fi
+
+  # set up git
+  git init $quiet &&
+    echo "# $1" > README.md &&
+    echo "/node_modules" > .gitignore &&
+    git add .gitignore README.md &&
+    git commit $quiet -m "init"
+
+  # basic npm project setup
+  if [[ -n $quiet ]]; then
+    npm init -y &> '/dev/null'
+  else
+    npm init -y
+  fi
+
+  # add TypeScript support
+  # see: https://khalilstemmler.com/blogs/typescript/node-starter-project/
+  npm install $silent typescript @types/node --save-dev
+
+  if [[ -n $quiet ]]; then
+    npx tsc --init \
+      --rootDir src --outDir build --esModuleInterop --resolveJsonModule \
+      --lib es6 --module commonjs --allowJs true --noImplicitAny true &> '/dev/null'
+  else
+    npx tsc --init \
+      --rootDir src --outDir build --esModuleInterop --resolveJsonModule \
+      --lib es6 --module commonjs --allowJs true --noImplicitAny true
+  fi
+
+  # add some TypeScript files
+  # see: https://blog.devgenius.io/create-your-own-npm-package-776c0a4873f4
+  # see: https://itnext.io/step-by-step-building-and-publishing-an-npm-typescript-package-44fe7164964c
+  mkdir src && \
+    echo "export const Greeter = (name: string) => \`Hello, \${name}!\`;" > src/greeter.ts && \
+    echo "export { Greeter } from './greeter'" > src/index.ts
+
+  # define development scripts
+  if ! grep -q "    \"test\": \"echo \\\\\"Error: no test specified\\\\\" && exit 1\"" package.json; then
+    echo "package.json is formatted in an unexpected way. Cannot continue."
+    return 1
+  else
+    # see: https://stackoverflow.com/a/12696224/2925434
+    sed -i '' 's@    "test": "echo \\"Error: no test specified\\" && exit 1"@<SCRIPTS>@g' package.json
+
+    local scripts="\
+    \"clean\": \"rm -rf build/\",\n\
+    \"build\": \"tsc\""
+
+    sed -i '' "s@<SCRIPTS>@$scripts@g" package.json
+  fi
+
+  # test build command
+  if [[ -n $silent ]]; then
+    npm run build $silent
+  else
+    npm run build
+  fi
+
+  git add . && git commit -m "save point"
+
+
+  # TODO:
+  # run the script in an HTML file
+  # add tests / linting / prettier / live-server / nodemon
+  # publish the package to npm
+
+
+
+
+  # move back to parent directory
+  cd ..
+}
