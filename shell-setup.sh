@@ -204,25 +204,27 @@ if ! is_installed tsc; then
   npm install --global typescript
 fi
 
-# used for checking if npm package names are available
-if ! is_installed tsc; then
-  echo "~/.dotfiles is installing npm-name-cli ('npm-name') globally..."
-  npm install --global npm-name-cli
-fi
-
 #-------------------------------------------------------------------------------
 #  zsh shell function to create a new TypeScript npm project
 #-------------------------------------------------------------------------------
 
 function mkts() {
 
+  # add flags to
+  #  - publish to npm?
+  #  - create a local "sandbox" HTML file using webpack?
+  #  - configure hot reloading with nodemon / webpack-dev-server?
+
   # parse command-line options
   # see: https://linux.die.net/man/1/zshmodules
-  zparseopts -E -D y=yes -yes=yes h=help -help=help q=quiet -quiet=quiet
+  zparseopts -E -D p=publish -publish=publish h=help -help=help q=quiet -quiet=quiet
 
   # need help? incorrect usage?
   if [[ -n $help ]] || [[ -z $@ ]]; then
-    echo "Usage: mkts <package-name>"
+    echo "Usage: mkts [--help] [--publish] [--quiet] <package-name>"
+    echo "         -h, --help       display this help menu"
+    echo "         -p, --publish    publish this project to npm"
+    echo "         -q, --quiet      suppress all output"
     return 1
   fi
 
@@ -234,14 +236,10 @@ function mkts() {
   fi
 
   # use npm-name-cli to check if an npm package with this name already exists
-  if [[ -z $yes ]] && ! npm-name $1; then
-    echo -n "  continue anyway (y/n)? "; read answer
-    case ${answer:0:1} in
-      y|Y )
-        ;; # continuing
-      * )
-        return 2 ;; # quitting
-    esac
+  npm install $silent --global npm-name-cli
+  if [[ -z $publish ]] && ! npm-name $1; then
+    echo "ERROR: project with name $1 already exists on npm. Try a different name."
+    return 2
   fi
 
   # make a directory to hold this project
@@ -282,7 +280,7 @@ function mkts() {
       --lib es6,dom --module commonjs --noImplicitAny true
   fi
 
-  # add some TypeScript files
+  # add some example TypeScript files
   # see: https://blog.devgenius.io/create-your-own-npm-package-776c0a4873f4
   # see: https://itnext.io/step-by-step-building-and-publishing-an-npm-typescript-package-44fe7164964c
   mkdir src && \
@@ -296,20 +294,36 @@ function mkts() {
 --------------------
       )" > src/greeter.ts
 
+  # helper function to add one or more scripts to package.json
+  function add_scripts() {
+    local anchor="  \"scripts\": {"
+
+    # abort if given an odd number of arguments (or none at all)
+    if [ $# -eq 0 ] || [ $(($#%2)) -eq 1 ]; then
+      echo "add_scripts expects a positive, even number of arguments"
+      return 1
+    fi
+
+    # find the "scripts" line in package.json
+    if ! grep -q $anchor package.json; then
+      echo "package.json is formatted in an unexpected way. Cannot continue."
+      return 1
+    else
+      local scripts=""
+
+      # loop through the arguments, two at a time, adding a new script on each line
+      while [ ! -z "$1" ]; do
+        scripts=$scripts"\n    \"$1\": \"$2\","
+        shift 2
+      done
+
+      # see: https://stackoverflow.com/a/12696224/2925434
+      sed -i '' "s@$anchor@$anchor$scripts@g" package.json
+    fi
+  }
+
   # define development scripts
-  if ! grep -q "    \"test\": \"echo \\\\\"Error: no test specified\\\\\" && exit 1\"" package.json; then
-    echo "package.json is formatted in an unexpected way. Cannot continue."
-    return 1
-  else
-    # see: https://stackoverflow.com/a/12696224/2925434
-    sed -i '' 's@    "test": "echo \\"Error: no test specified\\" && exit 1"@<SCRIPTS>@g' package.json
-
-    local scripts="\
-    \"clean\": \"rm -rf build/\",\n\
-    \"build\": \"tsc\""
-
-    sed -i '' "s@<SCRIPTS>@$scripts@g" package.json
-  fi
+  add_scripts "clean" "rm -rf build" "build" "tsc"
 
   # test build command
   if [[ -n $silent ]]; then
@@ -322,7 +336,7 @@ function mkts() {
   git add . && git commit $quiet -m "skeleton TypeScript configuration"
 
   #---------------------------------------------------------
-  #  use webpack to bundle TypeScript code as JavaScript to run in the browser
+  #  optional: use webpack to bundle TypeScript code as JavaScript to run in the browser
   #---------------------------------------------------------
 
   # see: https://bit.ly/3KJ4ntV
@@ -375,6 +389,7 @@ function mkts() {
     | const path = require('path');
     | 
     | module.exports = {
+    |   mode: 'none',
     |   entry: './sandbox/index.ts',
     |   devtool: 'inline-source-map',
     |   module: {
@@ -399,25 +414,55 @@ function mkts() {
     )" > webpack.config.js
 
   # add 'sandbox' script to package.json
-  if ! grep -q "    \"build\": \"tsc\"" package.json; then
-    echo "package.json does not contain a \"build\" script. Cannot continue."
-    return 1
-  else
-    sed -i '' 's@    "build": "tsc"@<SCRIPTS>@g' package.json
+  add_scripts "sandbox" "npx webpack"
 
-    local scripts="\
-    \"build\": \"tsc\",\n\
-    \"sandbox\": \"npx webpack\""
+  #---------------------------------------------------------
+  #  optional: add hot reloading via nodemon / webpack-dev-server
+  #---------------------------------------------------------
 
-    sed -i '' "s@<SCRIPTS>@$scripts@g" package.json
-  fi
+  # https://khalilstemmler.com/blogs/typescript/node-starter-project/
+  npm install $silent --save-dev ts-node nodemon
 
+  # hot reload src/
+  echo "$(sed -e 's/[ ]*\| //g' -e '1d;$d' <<'--------------------'
+    | 
+    | {
+    |   "watch": ["src"],
+    |   "ext": ".ts,.js",
+    |   "ignore": [],
+    |   "exec": "ts-node ./src/index.ts"
+    | }
+    | 
+--------------------
+    )" > nodemon.json
+
+  # https://javascript.plainenglish.io/typescript-environment-with-webpack-compilation-and-automatic-reload-b4d6d5a60f6f
+  npm install $silent --save-dev webpack-dev-server
+
+  # hot reload sandbox/
+  local devServer="\n  devServer: {\n    static: './sandbox',\n    hot: true\n  },"
+  sed -i '' "s@module.exports = {@module.exports = {$devServer@g" webpack.config.js
+
+  # add nodemon scripts to package.json
+  add_scripts "dev" "nodemon" "dev-sandbox" "webpack serve"
 
   # TODO:
+  # - add optional step to publish to npm
   # - add optional step to add dummy tests
   # - add optional step to add linting / prettier
-  # - add optional step to add live-server / nodemon
-  # - add optional step to publish to npm
+
+  # print out instructions based on flags passed in
+  # something like
+  # -----
+  # View your new project with
+  #   cd <dir-name> && ls
+  #
+  # Then, try some scripts (defined in package.json)
+  #
+  #   npm run build # build the project
+  #   npm run sandbox # check out the sandbox HTML file
+  #   npm run publish # ... etc.
+  # -----
 
   # move back to parent directory
   cd ..
