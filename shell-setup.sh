@@ -274,20 +274,27 @@ function mkts() {
 
   if [[ -n $quiet ]]; then
     npx tsc --init \
-      --rootDir src --outDir build --esModuleInterop --resolveJsonModule \
-      --lib es6 --module commonjs --allowJs true --noImplicitAny true &> '/dev/null'
+      --rootDir src --outDir build --esModuleInterop --resolveJsonModule --sourceMap \
+      --lib es6,dom --module commonjs --noImplicitAny true &> '/dev/null'
   else
     npx tsc --init \
-      --rootDir src --outDir build --esModuleInterop --resolveJsonModule \
-      --lib es6 --module commonjs --allowJs true --noImplicitAny true
+      --rootDir src --outDir build --esModuleInterop --resolveJsonModule --sourceMap \
+      --lib es6,dom --module commonjs --noImplicitAny true
   fi
 
   # add some TypeScript files
   # see: https://blog.devgenius.io/create-your-own-npm-package-776c0a4873f4
   # see: https://itnext.io/step-by-step-building-and-publishing-an-npm-typescript-package-44fe7164964c
   mkdir src && \
-    echo "export const Greeter = (name: string) => \`Hello, \${name}!\`;" > src/greeter.ts && \
-    echo "export { Greeter } from './greeter'" > src/index.ts
+    echo "export * from './greeter'" > src/index.ts && \
+    echo "$(sed -e 's/[ ]*\| //g' -e '1d;$d' <<'--------------------'
+      | 
+      | export default class Greeter {
+      |   greet(name: string) { return `Hello, ${name}!`; }
+      | }
+      | 
+--------------------
+      )" > src/greeter.ts
 
   # define development scripts
   if ! grep -q "    \"test\": \"echo \\\\\"Error: no test specified\\\\\" && exit 1\"" package.json; then
@@ -311,16 +318,106 @@ function mkts() {
     npm run build
   fi
 
-  git add . && git commit -m "save point"
+  # save here
+  git add . && git commit $quiet -m "skeleton TypeScript configuration"
+
+  #---------------------------------------------------------
+  #  use webpack to bundle TypeScript code as JavaScript to run in the browser
+  #---------------------------------------------------------
+
+  # see: https://bit.ly/3KJ4ntV
+  npm install $silent --save-dev webpack webpack-cli ts-loader
+
+  # the sandbox directory will hold a simple example
+  mkdir sandbox
+
+  # allow both the src/ and sandbox/ directories to contain .ts files
+  sed -E -i '' 's/    \"rootDir\": \"src\",.*/    \"rootDirs\": \[ \"src\", \"sandbox\" \],/g' tsconfig.json
+
+  # create a simple HTML file for the sandbox example
+  echo "$(sed -e 's/[ ]*\| //g' -e '1d;$d' <<'--------------------'
+    | 
+    | <!DOCTYPE html>
+    | <html>
+    |   <head>
+    |     <script src='index.js'></script>
+    |   </head>
+    |   <body>
+    |     <span id='hello-world'></span>
+    |   </body>
+    | </html>
+    | 
+--------------------
+    )" > sandbox/index.html
+
+  # and create a simple TypeScript file
+  echo "$(sed -e 's/[ ]*\| //g' -e '1d;$d' <<'--------------------'
+    | 
+    | import Greeter from "../src/greeter";
+    | 
+    | function helloWorld() {
+    |   const element = document.getElementById('hello-world');
+    |   
+    |   if (element) {
+    |     const greeter = new Greeter();
+    |     element.textContent = greeter.greet('World');
+    |   }
+    | }
+    | 
+    | window.onload = (ev: Event) => helloWorld();
+    | 
+--------------------
+    )" > sandbox/index.ts
+
+  # and configure webpack
+  echo "$(sed -e 's/[ ]*\| //g' -e '1d;$d' <<'--------------------'
+    | 
+    | const path = require('path');
+    | 
+    | module.exports = {
+    |   entry: './sandbox/index.ts',
+    |   devtool: 'inline-source-map',
+    |   module: {
+    |     rules: [
+    |       {
+    |         test: /\.tsx?$/,
+    |         use: 'ts-loader',
+    |         exclude: /node_modules/,
+    |       },
+    |     ],
+    |   },
+    |   resolve: {
+    |     extensions: ['.tsx', '.ts', '.js'],
+    |   },
+    |   output: {
+    |     filename: 'index.js',
+    |     path: path.resolve(__dirname, 'sandbox'),
+    |   },
+    | };
+    | 
+--------------------
+    )" > webpack.config.js
+
+  # add 'sandbox' script to package.json
+  if ! grep -q "    \"build\": \"tsc\"" package.json; then
+    echo "package.json does not contain a \"build\" script. Cannot continue."
+    return 1
+  else
+    sed -i '' 's@    "build": "tsc"@<SCRIPTS>@g' package.json
+
+    local scripts="\
+    \"build\": \"tsc\",\n\
+    \"sandbox\": \"npx webpack\""
+
+    sed -i '' "s@<SCRIPTS>@$scripts@g" package.json
+  fi
 
 
   # TODO:
-  # run the script in an HTML file
-  # add tests / linting / prettier / live-server / nodemon
-  # publish the package to npm
-
-
-
+  # - add optional step to add dummy tests
+  # - add optional step to add linting / prettier
+  # - add optional step to add live-server / nodemon
+  # - add optional step to publish to npm
 
   # move back to parent directory
   cd ..
