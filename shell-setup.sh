@@ -1,11 +1,3 @@
-# Installation instructions:
-# 
-# 1. install oh-my-zsh
-# 2. add the following line to THE TOP OF .zshrc
-#        source ~/.dotfiles/shell.sh
-# 3. ???
-# 4. profit
-
 #-------------------------------------------------------------------------------
 #  aliases and env vars
 #-------------------------------------------------------------------------------
