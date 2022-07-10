@@ -43,6 +43,9 @@ function is_installed() {
 # set default editor to nano
 export EDITOR=nano
 
+# set default pager to cat
+export PAGER=cat
+
 # set default branch name to master
 git config --global init.defaultBranch master
 git config --global user.name "Andrew William Watson"
@@ -160,6 +163,15 @@ if ! is_installed brew; then
   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
   echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> $HOME/.zprofile
   eval "$(/opt/homebrew/bin/brew shellenv)"
+fi
+
+#-------------------------------------------------------------------------------
+#  code (Visual Studio Code) installation
+#-------------------------------------------------------------------------------
+
+if ! is_installed code; then
+  echo "~/.dotfiles is installing Visual Studio Code..."
+  brew install --cask visual-studio-code
 fi
 
 #-------------------------------------------------------------------------------
