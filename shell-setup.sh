@@ -53,7 +53,7 @@ git config --global user.email "aww@awwsmm.com"
 git config --global core.pager cat
 
 # set default merge conflict resolution strategy
-git config pull.rebase false
+git config --global pull.rebase false
 
 #-------------------------------------------------------------------------------
 #  Add IntelliJ shortcut (ij) -- could definitely be simplified
