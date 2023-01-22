@@ -244,7 +244,7 @@ function mkts() {
 
   # use npm-name-cli to check if an npm package with this name already exists
   npm install $silent --global npm-name-cli
-  if [[ -z $publish ]] && ! npm-name $1; then
+  if [[ -n $publish ]] && ! npm-name $1; then
     echo "ERROR: project with name $1 already exists on npm. Try a different name."
     return 2
   fi
@@ -423,6 +423,9 @@ function mkts() {
   # add 'sandbox' script to package.json
   add_scripts "sandbox" "npx webpack"
 
+  # save here
+  git add . && git commit $quiet -m "webpack and sandbox"
+
   #---------------------------------------------------------
   #  optional: add hot reloading via nodemon / webpack-dev-server
   #---------------------------------------------------------
@@ -452,6 +455,9 @@ function mkts() {
 
   # add nodemon scripts to package.json
   add_scripts "dev" "nodemon" "dev-sandbox" "webpack serve"
+
+  # save here
+  git add . && git commit $quiet -m "hot reloading"
 
   # TODO:
   # - add optional step to publish to npm
