@@ -55,6 +55,9 @@ git config --global core.pager cat
 # set default merge conflict resolution strategy
 git config --global pull.rebase false
 
+# if we try to push to a branch that doesn't exist remotely, create it
+git config --global push.autoSetupRemote true
+
 #-------------------------------------------------------------------------------
 #  Add IntelliJ shortcut (ij)
 #-------------------------------------------------------------------------------
@@ -513,3 +516,33 @@ function mkts() {
   # move back to parent directory
   cd ..
 }
+
+#---------------------------------------------------------
+#  set up git Hosts in ~/.ssh
+#---------------------------------------------------------
+
+# https://gist.github.com/rahularity/86da20fe3858e6b311de068201d279e3
+
+touch ~/.ssh/config
+
+if ! grep -q "Host ngtt-gitlab" ~/.ssh/config; then
+
+  cp ~/.ssh/config ~/.ssh/config.bak
+
+  echo "$(sed -e 's/[ ]*\| //g' -e '1d;$d' <<'--------------------'
+    | 
+    | # git clone git@ngtt-gitlab:path/to/repo.git
+    | Host ngtt-gitlab
+    |   HostName gitlab.com
+    |   User git
+    |   IdentityFile ~/.ssh/ngtt-gitlab
+    | 
+    | # git clone git@ngtt-github:path/to/repo.git
+    | Host ngtt-github
+    |   HostName github.com
+    |   User git
+    |   IdentityFile ~/.ssh/ngtt-github
+    | 
+--------------------
+    )" >> ~/.ssh/config
+fi
