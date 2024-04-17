@@ -543,6 +543,12 @@ if ! grep -q "Host ngtt-gitlab" ~/.ssh/config; then
     |   User git
     |   IdentityFile ~/.ssh/ngtt-github
     | 
+    | # git clone git@github.com:path/to/repo.git
+    | Host github.com
+    |   HostName github.com
+    |   User git
+    |   IdentityFile ~/.ssh/personal-github
+    | 
 --------------------
     )" >> ~/.ssh/config
 fi
