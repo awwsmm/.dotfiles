@@ -56,7 +56,7 @@ git config --global core.pager cat
 git config --global pull.rebase false
 
 #-------------------------------------------------------------------------------
-#  Add IntelliJ shortcut (ij) -- could definitely be simplified
+#  Add IntelliJ shortcut (ij)
 #-------------------------------------------------------------------------------
 
 # source: https://gist.github.com/agoncal/8cfabe8e3e261c068902a95443d22079
@@ -69,13 +69,11 @@ function ij {
 
   # were we given a directory?
   if [ $# -eq 0 ] || [ -d "$1" ]; then
-  #  echo "checking for things in the working dir given"
     wd=`ls -1d "$1" | head -n1`
   fi
 
   # were we given a file?
   if [ -f "$1" ]; then
-  #  echo "opening '$1'"
     open -a "$IDEA" "$1"
   else
       # let's check for stuff in our working directory.
@@ -83,22 +81,10 @@ function ij {
 
       # does our working dir have an .idea directory?
       if [ -d ".idea" ]; then
-  #      echo "opening via the .idea dir"
         open -a "$IDEA" .
-
-  #    # is there an IDEA project file?
-  #    elif [ -f *.ipr ]; then
-  #      echo "opening via the project file"
-  #      open -a "$IDEA" `ls -1d *.ipr | head -n1`
-
-  #    # Is there a pom.xml?
-  #    elif [ -f pom.xml ]; then
-  #      echo "importing from pom"
-  #      open -a "$IDEA" "pom.xml"
 
       # can't do anything smart; just open IDEA
       else
-  #      echo 'cbf'
         open -a "$IDEA" "./"
       fi
 
@@ -106,6 +92,53 @@ function ij {
   fi
 
 }
+
+#-------------------------------------------------------------------------------
+#  Add RustRover shortcut (rr)
+#-------------------------------------------------------------------------------
+
+function rr {
+
+  # check for where the latest version of RustRover is installed
+  local ROVER=`ls -1d /Applications/RustRover\ * | tail -n1`
+  local wd=`pwd`
+
+  # were we given a directory?
+  if [ $# -eq 0 ] || [ -d "$1" ]; then
+    wd=`ls -1d "$1" | head -n1`
+  fi
+
+  # were we given a file?
+  if [ -f "$1" ]; then
+    open -a "$ROVER" "$1"
+  else
+      # let's check for stuff in our working directory.
+      pushd $wd > /dev/null
+
+      # does our working dir have an .idea directory?
+      if [ -d ".idea" ]; then
+        open -a "$ROVER" .
+
+      # can't do anything smart; just open ROVER
+      else
+        open -a "$ROVER" "./"
+      fi
+
+      popd > /dev/null
+  fi
+
+}
+
+#-------------------------------------------------------------------------------
+#  Add Coursier (cs) to PATH
+#-------------------------------------------------------------------------------
+
+if [[ ":$PATH:" == *"Coursier"* ]]; then
+  # do nothing, Coursier is already on the PATH
+else
+  echo "~/.dotfiles is adding 'Coursier' ('cs') to the \$PATH..."
+  export PATH=$PATH:"/Users/andrew/Library/Application Support/Coursier/bin"
+fi
 
 #-------------------------------------------------------------------------------
 #  Add Visual Studio Code (code) to PATH
