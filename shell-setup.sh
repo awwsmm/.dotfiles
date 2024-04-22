@@ -8,6 +8,9 @@ alias sdkman="sdk"
 # for ease of reloading terminal settings
 alias so="source $HOME/.zshrc"
 
+# to easily access libraries installed by brew (https://github.com/Rust-SDL2/rust-sdl2)
+export LIBRARY_PATH="$LIBRARY_PATH:$(brew --prefix)/lib"
+
 #-------------------------------------------------------------------------------
 #  is_installed() tests if a command is available or not
 #
