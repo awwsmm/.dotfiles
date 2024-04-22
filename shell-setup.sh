@@ -175,15 +175,10 @@ setup_zsh_theme
 #-------------------------------------------------------------------------------
 
 function setup_sdkman() {
-
-  # try to get the SDKMAN! version
-  local LOCAL_SDKMAN_VERSION=$(sdk version 2>/dev/null)
-
-  # if we can't find the SDKMAN! version...
-  if [ -z "${LOCAL_SDKMAN_VERSION// }" ]; then
+  if ! is_installed sdk; then
     export SDKMAN_DIR="$HOME/.sdkman"
 
-    # check if it's installed...
+    # check if the directory exists. If not...
     if [ ! -d $SDKMAN_DIR ]; then
       echo "~/.dotfiles is installing 'SDKMAN!'..."
       curl -s "https://get.sdkman.io" | bash
@@ -522,6 +517,8 @@ function mkts() {
 
 #---------------------------------------------------------
 #  set up git Hosts in ~/.ssh
+#
+#  FIXME this is sloppy and could result in these Hosts being written multiple times
 #---------------------------------------------------------
 
 # https://gist.github.com/rahularity/86da20fe3858e6b311de068201d279e3
@@ -529,6 +526,7 @@ function mkts() {
 touch ~/.ssh/config
 
 if ! grep -q "Host ngtt-gitlab" ~/.ssh/config; then
+  echo "~/.dotfiles is writing to ~/.ssh/config..."
 
   cp ~/.ssh/config ~/.ssh/config.bak
 
