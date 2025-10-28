@@ -17,8 +17,8 @@ function last_command_end() {
 
 PROMPT=$'\n# %F{red}$(last_command_end)%f\n# %B%F{green}%D{$TIME_FORMAT}%f in %F{cyan}$(print $PWD)%f\n#                       %F{yellow}$(git_prompt_info)%f\n\$%b '
 
-TMOUT=1
+#TMOUT=1
 
-TRAPALRM() {
-    zle reset-prompt
-}
+#TRAPALRM() {
+#    zle reset-prompt
+#}

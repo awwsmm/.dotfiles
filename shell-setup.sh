@@ -2,6 +2,8 @@
 #  aliases and env vars
 #-------------------------------------------------------------------------------
 
+# TODO: add 'tree' and 'jq' to this installation script
+
 # because I accidentally type this all the time
 alias sdkman="sdk"
 
@@ -28,12 +30,12 @@ export LIBRARY_PATH="$LIBRARY_PATH:$(brew --prefix)/lib"
 function is_installed() {
   if ! command -v $1 &> /dev/null; then
     if [[ $2 == "verbose" ]]; then
-      echo "$1 is not installed"
+      echo "~/.dotfiles says: $1 is not installed"
     fi
     return 1
   else
     if [[ $2 == "verbose" ]]; then
-      echo "$1 is installed"
+      echo "~/.dotfiles says: $1 is installed"
     fi
     return 0
   fi
@@ -42,6 +44,9 @@ function is_installed() {
 #-------------------------------------------------------------------------------
 #  git setup
 #-------------------------------------------------------------------------------
+
+echo "~/.dotfiles is upgrading git..."
+brew upgrade --quiet git
 
 # set default editor to nano
 export EDITOR=nano
@@ -191,6 +196,12 @@ function setup_sdkman() {
 
 setup_sdkman
 
+echo "~/.dotfiles is upgrading sdkman..."
+sdk selfupdate &>/dev/null
+
+echo "~/.dotfiles is upgrading sdkman's offerings..."
+sdk update &>/dev/null
+
 #-------------------------------------------------------------------------------
 #  brew (Homebrew) installation
 #-------------------------------------------------------------------------------
@@ -202,6 +213,15 @@ if ! is_installed brew; then
   eval "$(/opt/homebrew/bin/brew shellenv)"
 fi
 
+echo "~/.dotfiles is updating brew..."
+brew update --quiet
+
+echo "~/.dotfiles is upgrading all brew packages..."
+brew upgrade --quiet
+
+echo "~/.dotfiles is cleaning up all old brew packages..."
+brew cleanup --quiet
+
 #-------------------------------------------------------------------------------
 #  code (Visual Studio Code) installation
 #-------------------------------------------------------------------------------
@@ -211,25 +231,20 @@ if ! is_installed code; then
   brew install --cask visual-studio-code
 fi
 
+echo "~/.dotfiles is upgrading Visual Studio Code..."
+brew upgrade --quiet visual-studio-code
+
 #-------------------------------------------------------------------------------
-#  pyenv installation
+#  uv (Python package manager, virtual environment) installation
 #-------------------------------------------------------------------------------
 
-if ! is_installed pyenv; then
-  echo "~/.dotfiles is installing 'pyenv'..."
-  brew install pyenv
+if ! is_installed uv; then
+  echo "~/.dotfiles is installing 'uv'..."
+  brew install uv
 fi
 
-#-------------------------------------------------------------------------------
-#  Add pyenv to PATH
-#-------------------------------------------------------------------------------
-
-if [[ ":$PATH:" == *"pyenv"* ]]; then
-  # do nothing, pyenv is already on the PATH
-else
-  echo "~/.dotfiles is adding 'pyenv' to the \$PATH..."
-  eval "$(pyenv init --path)"
-fi
+echo "~/.dotfiles is upgrading uv..."
+brew upgrade --quiet uv
 
 #-------------------------------------------------------------------------------
 #  node installation
